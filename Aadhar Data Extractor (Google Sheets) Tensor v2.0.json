@@ -1,0 +1,402 @@
+{
+  "name": "Aadhar Data Extractor (Google Sheets) Tensor v2.0",
+  "nodes": [
+    {
+      "parameters": {
+        "fileSelector": "={{ $('Local File Trigger').item.json.path }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        224
+      ],
+      "id": "744de451-d29d-4b55-ba05-a3d18cba492b",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "Act as a strict OCR engine. Extract data into raw JSON. NO markdown. NO code blocks.\n\nREQUIRED KEYS:\n- Aadhaar_Number (MANDATORY. 12 digits, no spaces. If NOT visible, return {\"Aadhaar_Number\": \"ERROR\")\n- Name\n- DOB (DD/MM/YYYY)\n- Gender\n- Address (One line)\n\nRULES:\n1. \"Aadhaar_Number\" is the PRIMARY KEY. It must always be present.\n2. For all OTHER keys (Name, Address, etc.), if the data is blurred or not visible, OMIT the key entirely. Do NOT send empty strings or \"null\".\n3. Return ONLY the raw JSON object starting with { and ending with }.\n4. Do NOT include markdown formatting like ```json.",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        224
+      ],
+      "id": "f8f85f92-c2f7-4fa7-a99a-50b8c02a7c3d",
+      "name": "Analyze an image"
+    },
+    {
+      "parameters": {
+        "triggerOn": "folder",
+        "path": "[PATH_TO_WATCH_FOLDER]",
+        "events": [
+          "add"
+        ],
+        "options": {
+          "ignoreInitial": true
+        }
+      },
+      "type": "n8n-nodes-base.localFileTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        224
+      ],
+      "id": "f1f347e3-91e3-4292-be98-d3c9cdd76990",
+      "name": "Local File Trigger"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d924473c-63b4-4157-a2f4-6927cd00109f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "executeOnce": false,
+        "command": "IF EXIST \"[PATH_TO_SOURCE_FOLDER]\\*.jp*\" (set \"moved=\" & for %f in (\"[PATH_TO_SOURCE_FOLDER]\\*.jp*\") do @if not defined moved (move \"%f\" \"[PATH_TO_DESTINATION_FOLDER]\\\" & set \"moved=1\")) ELSE (echo No files found - Waiting for next run)"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "18f333a2-75a4-42d9-8ad3-0eb2365d5926",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "[YOUR_GOOGLE_SHEET_URL]",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 871479524,
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "[YOUR_GOOGLE_SHEET_URL_WITH_GID]"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Aadhaar Number"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DOB",
+              "displayName": "DOB",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Aadhaar Number",
+              "displayName": "Aadhaar Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Path",
+              "displayName": "Path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Gender",
+              "displayName": "Gender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        224
+      ],
+      "id": "f1e44438-8a78-4959-b2fd-37a91d274b4b",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleApi": {
+          "id": "pjLsyDGcACVAyFjy",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop through every item\nreturn $input.all().map(item => {\n  \n  // Initialize the clean object\n  const cleanData = {};\n  \n  // Loop through all keys coming from the previous node\n  for (const key in item.json) {\n    let value = item.json[key];\n\n    // --- CRITICAL FIX: Force Aadhaar Number to String ---\n    // If the key name contains \"Aadhaar\" (matches \"Aadhaar Number\" or \"Aadhaar_Number\")\n    if (key.includes(\"Aadhaar\")) {\n       // Convert to String and Trim spaces to match Google Sheets \"Plain Text\" perfectly\n       value = String(value).trim();\n    }\n    // ---------------------------------------------------\n\n    // If value is NOT null, NOT undefined, and NOT an empty string\n    if (value !== null && value !== undefined && value !== \"\") {\n      cleanData[key] = value;\n    }\n  }\n  \n  // Return the cleaned object\n  return { json: cleanData };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        224
+      ],
+      "id": "6980820f-7f3a-446a-86d9-41a7a1048bf0",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "66b5596a-fd85-4a73-965f-e744afcee59d",
+              "name": "Name",
+              "value": "={{ JSON.parse($json.candidates[0].content.parts[0].text).Name }}",
+              "type": "string"
+            },
+            {
+              "id": "40049887-4eac-458d-81f1-df73c26009e6",
+              "name": "DOB",
+              "value": "={{ JSON.parse($json.candidates[0].content.parts[0].text).DOB }}",
+              "type": "string"
+            },
+            {
+              "id": "56c2ef93-cb18-452e-9cc9-175522f02cef",
+              "name": "Aadhaar Number",
+              "value": "={{ JSON.parse($json.candidates[0].content.parts[0].text).Aadhaar_Number }}",
+              "type": "string"
+            },
+            {
+              "id": "000cb90d-cd22-4994-a943-a17dc111b316",
+              "name": "Gender",
+              "value": "={{ JSON.parse($json.candidates[0].content.parts[0].text).Gender }}",
+              "type": "string"
+            },
+            {
+              "id": "95c5dea5-a2f5-47db-982b-109b051c8425",
+              "name": "Address",
+              "value": "={{ JSON.parse($json.candidates[0].content.parts[0].text).Address }}",
+              "type": "string"
+            },
+            {
+              "id": "b3d6d907-7af2-4d00-a073-145490e987be",
+              "name": "Path",
+              "value": "={{ $('Local File Trigger').item.json.path }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        224
+      ],
+      "id": "6228db4b-de1a-4674-81f6-defa6566176f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "content": "## Google Sheet Guide\n1. The headers in Row 1 are Case Sensitive:\nA. Name\nB. DOB\nC. Aadhaar Number\nD.  Address\nE. Path\n2. Forced \"Plain Text\": We formatted the Aadhaar column in Sheets to \"Plain Text\" to prevent scientific notation.",
+        "height": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1264,
+        400
+      ],
+      "typeVersion": 1,
+      "id": "a270283b-e4bc-42fc-9856-b496f6275af7",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        224
+      ],
+      "id": "eab6067a-08c5-4422-b9bb-0e7c897d3828",
+      "name": "Wait",
+      "webhookId": "a016a939-013e-424e-ad4f-7d6298ed7e4d"
+    },
+    {
+      "parameters": {
+        "path": "92ef8eda-b5e3-4cd9-953b-f1206b32305b",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        384
+      ],
+      "id": "bc56815f-9066-4d40-ad1b-4a8d5c44b2bf",
+      "name": "Webhook",
+      "webhookId": "92ef8eda-b5e3-4cd9-953b-f1206b32305b"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Local File Trigger": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "82899401-b7df-4d37-b203-a2eda66173fe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "438db2442434425d4e829973a65aa313cc334675cf868eb1228f6119f974b3da"
+  },
+  "id": "FU57l7AZAbcThBLyovtro",
+  "tags": []
+}
